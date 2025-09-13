@@ -1,5 +1,18 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Save,
+  X,
+  Crown,
+  UserPlus,
+  LogOut,
+  KeyRound,
+  AlertCircle,
+  CheckCircle,
+} from "lucide-react";
 
 type Note = { id: string; title: string; content: string; createdAt: string };
 
@@ -10,12 +23,11 @@ export default function NotesPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [tenantSlug, setTenantSlug] = useState("");
-  const [role, setRole] = useState(""); // user role
-  const [tenantPlan, setTenantPlan] = useState("FREE"); // Free / Pro
+  const [role, setRole] = useState(""); // ADMIN / MEMBER
+  const [tenantPlan, setTenantPlan] = useState("FREE");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
-
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("MEMBER");
 
@@ -32,20 +44,24 @@ export default function NotesPage() {
     const token = getToken();
     if (!token) return router.push("/");
 
-    const resp = await fetch("/api/notes", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await resp.json();
-    if (!resp.ok) {
-      setError(data?.error || "Failed to load notes");
-      if (resp.status === 401) {
-        localStorage.removeItem("token");
-        router.push("/");
+    try {
+      const resp = await fetch("/api/notes", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        setError(data?.error || "Failed to load notes");
+        if (resp.status === 401) {
+          localStorage.removeItem("token");
+          router.push("/");
+        }
+        return;
       }
-      return;
+      setNotes(data.notes || data);
+      setTenantPlan(data.plan || "FREE");
+    } catch (err) {
+      setError("Failed to fetch notes");
     }
-    setNotes(data.notes || data); // assuming backend returns { notes, plan }
-    setTenantPlan(data.plan || "FREE");
   }
 
   useEffect(() => {
@@ -60,6 +76,7 @@ export default function NotesPage() {
     e.preventDefault();
     setError("");
     setSuccess("");
+
     if (tenantPlan === "FREE" && notes.length >= 3) {
       setError("Free plan limit reached! Upgrade to Pro to add more notes.");
       return;
@@ -94,25 +111,19 @@ export default function NotesPage() {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      // Only try to parse JSON if the response has content
       let data: any = null;
-      const text = await resp.text(); // read raw text
+      const text = await resp.text();
       if (text) {
         try {
           data = JSON.parse(text);
-        } catch {
-          // ignore invalid JSON
-        }
+        } catch {}
       }
-
       if (!resp.ok) return setError(data?.error || "Delete failed");
 
       setSuccess(data?.message || "Note deleted successfully!");
       fetchNotes();
     } catch (err) {
       setError("An unexpected error occurred");
-      console.error(err);
     }
   }
 
@@ -122,7 +133,6 @@ export default function NotesPage() {
     setEditContent(note.content);
   }
 
-  // Inside your NotesPage component
   async function handleUpdate(id: string, e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -187,155 +197,207 @@ export default function NotesPage() {
     setInviteRole("MEMBER");
   }
 
+  function handleLogout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("tenantSlug");
+    localStorage.removeItem("role");
+    router.push("/");
+  }
+
   return (
-    <div style={{ padding: 20, maxWidth: 600, margin: "0 auto" }}>
-      <h1>Notes (tenant: {tenantSlug})</h1>
-
-      {/* Plan & Note Count */}
-      <p>
-        Plan:{" "}
-        <strong style={{ color: tenantPlan === "PRO" ? "green" : "orange" }}>
-          {tenantPlan}
-        </strong>{" "}
-        | Notes: {notes.length} / {tenantPlan === "FREE" ? 3 : "∞"}
-      </p>
-
-      {/* Notifications */}
-      {success && (
-        <div style={{ color: "green", marginBottom: 12 }}>{success}</div>
-      )}
-      {error && <div style={{ color: "red", marginBottom: 12 }}>{error}</div>}
-
-      {/* Create Note */}
-      <form onSubmit={handleCreate} style={{ marginBottom: 20 }}>
-        <input
-          placeholder="Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          style={{ padding: 8, width: "45%", marginRight: 8 }}
-        />
-        <input
-          placeholder="Content"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          style={{ padding: 8, width: "45%", marginRight: 8 }}
-        />
-        <button type="submit" style={{ padding: "8px 12px" }}>
-          Create
-        </button>
-      </form>
-
-      {/* Notes List */}
-      <div style={{ marginBottom: 30 }}>
-        {notes.map((note) => (
-          <div
-            key={note.id}
-            style={{
-              border: "1px solid #ddd",
-              padding: 12,
-              marginBottom: 8,
-              borderRadius: 6,
-            }}
-          >
-            {editingId === note.id ? (
-              <form
-                onSubmit={(e) => handleUpdate(note.id, e)}
-                style={{ display: "flex", gap: 8 }}
+    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
+      {/* Header */}
+      <header className="bg-white shadow-sm sticky top-0 z-10">
+        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <h1 className="text-xl font-bold text-gray-900">Notes</h1>
+            <div className="flex space-x-4">
+              <button
+                onClick={() => router.push("/change-password")}
+                className="flex items-center space-x-1 text-gray-600 hover:text-gray-900"
               >
-                <input
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  style={{ flex: 1 }}
-                />
-                <input
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  style={{ flex: 1 }}
-                />
-                <button type="submit">Save</button>
-                <button type="button" onClick={() => setEditingId(null)}>
-                  Cancel
-                </button>
-              </form>
-            ) : (
-              <>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
+                <KeyRound size={16} /> <span>Change Password</span>
+              </button>
+
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-1 text-gray-600 hover:text-gray-900"
+              >
+                <LogOut size={16} /> <span>Logout</span>
+              </button>
+            </div>
+          </div>
+        </nav>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Notifications */}
+        {success && (
+          <div className="mb-6 bg-green-100 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center">
+            <CheckCircle className="mr-3" size={20} /> {success}
+          </div>
+        )}
+        {error && (
+          <div className="mb-6 bg-red-100 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center">
+            <AlertCircle className="mr-3" size={20} /> {error}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          {/* Create Note */}
+          <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <h2 className="text-lg font-semibold mb-4">Create a New Note</h2>
+            <form onSubmit={handleCreate} className="space-y-4">
+              <input
+                placeholder="Title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
+                required
+              />
+              <textarea
+                placeholder="Content..."
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition h-28 resize-none"
+                required
+              />
+              <button className="w-full flex items-center justify-center py-3 px-4 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors">
+                <Plus size={18} className="mr-2" /> Create Note
+              </button>
+            </form>
+          </div>
+
+          {/* Plan & Admin */}
+          <div className="space-y-8">
+            {/* Plan */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-center">
+              <h2 className="text-lg font-semibold mb-4">Your Plan</h2>
+              <p
+                className={`text-4xl font-bold ${
+                  tenantPlan === "PRO" ? "text-green-600" : "text-orange-500"
+                }`}
+              >
+                {tenantPlan}
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                Notes: {notes.length} /{" "}
+                {tenantPlan === "FREE" ? 3 : "Unlimited"}
+              </p>
+              {tenantPlan === "FREE" && (
+                <button
+                  onClick={handleUpgrade}
+                  className="mt-4 w-full flex items-center justify-center py-2 px-4 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
                 >
-                  <strong>{note.title}</strong>
-                  <div>
-                    <button
-                      onClick={() => startEditing(note)}
-                      style={{ marginRight: 8 }}
-                    >
-                      Edit
-                    </button>
-                    <button onClick={() => handleDelete(note.id)}>
-                      Delete
-                    </button>
-                  </div>
-                </div>
-                <p>{note.content}</p>
-              </>
+                  <Crown size={16} className="mr-2" /> Upgrade to Pro
+                </button>
+              )}
+            </div>
+
+            {/* Admin Tools */}
+            {role === "ADMIN" && (
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <h2 className="text-lg font-semibold mb-4">Admin Tools</h2>
+                <form onSubmit={handleInvite} className="space-y-4">
+                  <input
+                    type="email"
+                    placeholder="User email"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
+                  />
+                  <select
+                    value={inviteRole}
+                    onChange={(e) => setInviteRole(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition bg-white"
+                  >
+                    <option value="MEMBER">Member</option>
+                    <option value="ADMIN">Admin</option>
+                  </select>
+                  <button
+                    type="submit"
+                    className="w-full flex items-center justify-center py-3 px-4 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                  >
+                    <UserPlus size={16} className="mr-2" /> Invite User
+                  </button>
+                </form>
+              </div>
             )}
           </div>
-        ))}
-      </div>
-
-      {/* Admin Tools */}
-      {role === "ADMIN" && (
-        <div style={{ marginBottom: 30 }}>
-          <h2>Admin Tools</h2>
-          <button onClick={handleUpgrade} style={{ marginBottom: 12 }}>
-            Upgrade to Pro
-          </button>
-
-          <form onSubmit={handleInvite}>
-            <h3>Invite User</h3>
-            <input
-              placeholder="User email"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              style={{ padding: 8, width: "60%", marginRight: 8 }}
-            />
-            <select
-              value={inviteRole}
-              onChange={(e) => setInviteRole(e.target.value)}
-              style={{ padding: 8, marginRight: 8 }}
-            >
-              <option value="MEMBER">Member</option>
-              <option value="ADMIN">Admin</option>
-            </select>
-            <button type="submit" style={{ padding: "8px 12px" }}>
-              Invite
-            </button>
-          </form>
         </div>
-      )}
 
-      {/* Logout / Change Password */}
-      <div>
-        <button
-          onClick={() => router.push("/change-password")}
-          style={{ marginRight: 8 }}
-        >
-          Change Password
-        </button>
-        <button
-          onClick={() => {
-            localStorage.removeItem("token");
-            localStorage.removeItem("tenantSlug");
-            localStorage.removeItem("role");
-            router.push("/");
-          }}
-        >
-          Logout
-        </button>
-      </div>
+        {/* Notes List */}
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Your Notes</h2>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {notes.map((note) => (
+              <div
+                key={note.id}
+                className="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col"
+              >
+                {editingId === note.id ? (
+                  <form
+                    onSubmit={(e) => handleUpdate(note.id, e)}
+                    className="p-4 space-y-3"
+                  >
+                    <input
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400"
+                    />
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400 h-24 resize-none"
+                    />
+                    <div className="flex justify-end space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(null)}
+                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-md"
+                      >
+                        <X size={18} />
+                      </button>
+                      <button
+                        type="submit"
+                        className="p-2 text-green-600 hover:bg-green-100 rounded-md"
+                      >
+                        <Save size={18} />
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <div className="p-5 flex-grow">
+                      <h3 className="font-semibold text-lg mb-2">
+                        {note.title}
+                      </h3>
+                      <p className="text-gray-600 text-sm">{note.content}</p>
+                    </div>
+                    <div className="bg-gray-50 p-3 flex justify-end items-center space-x-2 border-t border-gray-200">
+                      <p className="text-xs text-gray-400 mr-auto">
+                        {new Date(note.createdAt).toLocaleDateString()}
+                      </p>
+                      <button
+                        onClick={() => startEditing(note)}
+                        className="p-2 text-gray-500 hover:bg-gray-200 rounded-full transition-colors"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(note.id)}
+                        className="p-2 text-red-500 hover:bg-red-100 rounded-full transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
