@@ -89,15 +89,31 @@ export default function NotesPage() {
     const token = getToken();
     if (!token) return router.push("/");
 
-    const resp = await fetch(`/api/notes/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await resp.json();
-    if (!resp.ok) return setError(data?.error || "Delete failed");
+    try {
+      const resp = await fetch(`/api/notes/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    setSuccess("Note deleted successfully!");
-    fetchNotes();
+      // Only try to parse JSON if the response has content
+      let data: any = null;
+      const text = await resp.text(); // read raw text
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          // ignore invalid JSON
+        }
+      }
+
+      if (!resp.ok) return setError(data?.error || "Delete failed");
+
+      setSuccess(data?.message || "Note deleted successfully!");
+      fetchNotes();
+    } catch (err) {
+      setError("An unexpected error occurred");
+      console.error(err);
+    }
   }
 
   function startEditing(note: Note) {
