@@ -61,7 +61,6 @@ export default function App() {
       localStorage.setItem("tenantSlug", data.user?.tenantSlug || "");
       localStorage.setItem("role", data.user?.role || "");
 
-      // Show toast instead of alert
       setToast("Login successful! Redirecting...");
       setTimeout(() => {
         setToast(null);
@@ -87,75 +86,97 @@ export default function App() {
   return (
     <main
       style={{ fontFamily: "'Inter', sans-serif" }}
-      className="flex flex-col items-center justify-center min-h-screen bg-white p-6"
+      className="relative flex items-center justify-center min-h-screen overflow-hidden"
     >
-      <div className="w-full max-w-sm">
-        <h1 className="text-3xl font-bold mb-8 text-center text-gray-900">
-          Notes — Login
-        </h1>
+      {/* Fullscreen Particles Background */}
+      <div className="absolute inset-0 -z-10">
+        <img
+          src="/coolbackgrounds-fractalize-cool_backgrounds.png"
+          className="w-full h-full object-cover"
+        ></img>
+      </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="block w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
-              placeholder="you@example.com"
-            />
-          </div>
+      {/* Login Form Centered */}
+      <div className="relative z-10 w-full max-w-md p-6">
+        <h1 className="text-3xl font-bold mb-8 text-center text-gray-900"></h1>
+        <div className="max-w-6xl mx-auto mt-4 p-1 pb-4 bg-[linear-gradient(to_right,#f2f2f2,#f2f2f2,#f2f2f2,#d0f7fa,#d7b2fe,#f18d7d)] w-full rounded-3xl">
+          <div className="rounded-3xl border border-gray-200 shadow-sm p-6 pb-5 bg-white relative">
+            <div className="font-semibold text-black text-center text-2xl font-sans pb-6">
+              Welcome back
+            </div>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="block w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
+                  placeholder="you@example.com"
+                />
+              </div>
 
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <a href="#" className="text-sm text-gray-600 hover:underline">
-                Forgot your password?
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Password
+                  </label>
+                  <a href="#" className="text-sm text-gray-600 hover:underline">
+                    Forgot your password?
+                  </a>
+                </div>
+                <div className="relative">
+                  <input
+                    type={isPasswordVisible ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="block w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
+                  >
+                    {isPasswordVisible ? (
+                      <EyeOff size={20} />
+                    ) : (
+                      <Eye size={20} />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {error && (
+                <div className="text-red-500 text-sm -mt-2 text-center">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="w-full mt-3 py-3 px-4 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors"
+              >
+                Sign in
+              </button>
+            </form>
+
+            <div className="mt-8 text-center text-sm text-gray-600">
+              Don't have an account?{" "}
+              <a
+                href="#"
+                className="font-semibold text-gray-800 hover:underline"
+              >
+                Sign up
               </a>
             </div>
-            <div className="relative">
-              <input
-                type={isPasswordVisible ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="block w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
-                placeholder="••••••••"
-              />
-              <button
-                type="button"
-                onClick={togglePasswordVisibility}
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
-              >
-                {isPasswordVisible ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
           </div>
-
-          {error && (
-            <div className="text-red-500 text-sm -mt-2 text-center">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className="w-full mt-3 py-3 px-4 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors"
-          >
-            Sign in
-          </button>
-        </form>
-
-        <div className="mt-8 text-center text-sm text-gray-600">
-          Don't have an account?{" "}
-          <a href="#" className="font-semibold text-gray-800 hover:underline">
-            Sign up
-          </a>
+          <div className="text-sm font-bold text-center mt-3">
+            Powered by ved (v1)
+          </div>
         </div>
-
         <div className="mt-10 p-4 border border-gray-200 rounded-lg bg-gray-50 text-sm">
           <h3 className="font-semibold text-gray-700 mb-2">Test accounts:</h3>
           <ul className="list-disc list-inside text-gray-600 space-y-1">

@@ -149,9 +149,17 @@ export default function ChangePasswordPage() {
 
   return (
     <main
-      className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6"
       style={{ fontFamily: "'Inter', sans-serif" }}
+      className="relative flex items-center justify-center min-h-screen overflow-hidden"
     >
+      {/* Fullscreen Background Image */}
+      <div className="absolute inset-0 -z-10">
+        <img
+          src="/coolbackgrounds-fractalize-cool_backgrounds.png"
+          className="w-full h-full object-cover"
+          alt="Background"
+        />
+      </div>
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Change Password</h1>
@@ -159,56 +167,60 @@ export default function ChangePasswordPage() {
             Update your password for enhanced security.
           </p>
         </div>
+        <div className="max-w-6xl mx-auto mt-4 p-1 pb-4 bg-[linear-gradient(to_right,#f2f2f2,#f2f2f2,#f2f2f2,#d0f7fa,#d7b2fe,#f18d7d)] w-full rounded-3xl">
+          <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-200">
+            {error && (
+              <div className="mb-4 bg-red-100 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center">
+                <AlertCircle className="mr-3 flex-shrink-0" size={20} />
+                <span className="text-sm">{error}</span>
+              </div>
+            )}
+            {success && (
+              <div className="mb-4 bg-green-100 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center">
+                <CheckCircle className="mr-3 flex-shrink-0" size={20} />
+                <span className="text-sm">{success}</span>
+              </div>
+            )}
 
-        <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
-          {error && (
-            <div className="mb-4 bg-red-100 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center">
-              <AlertCircle className="mr-3 flex-shrink-0" size={20} />
-              <span className="text-sm">{error}</span>
-            </div>
-          )}
-          {success && (
-            <div className="mb-4 bg-green-100 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center">
-              <CheckCircle className="mr-3 flex-shrink-0" size={20} />
-              <span className="text-sm">{success}</span>
-            </div>
-          )}
+            {!success && (
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <PasswordInput
+                  label="Old Password"
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  field="old"
+                  visibility={visibility}
+                  toggleVisibility={toggleVisibility}
+                />
+                <PasswordInput
+                  label="New Password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  field="new"
+                  visibility={visibility}
+                  toggleVisibility={toggleVisibility}
+                />
+                <PasswordInput
+                  label="Confirm New Password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  field="confirm"
+                  visibility={visibility}
+                  toggleVisibility={toggleVisibility}
+                />
 
-          {!success && (
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <PasswordInput
-                label="Old Password"
-                value={oldPassword}
-                onChange={(e) => setOldPassword(e.target.value)}
-                field="old"
-                visibility={visibility}
-                toggleVisibility={toggleVisibility}
-              />
-              <PasswordInput
-                label="New Password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                field="new"
-                visibility={visibility}
-                toggleVisibility={toggleVisibility}
-              />
-              <PasswordInput
-                label="Confirm New Password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                field="confirm"
-                visibility={visibility}
-                toggleVisibility={toggleVisibility}
-              />
-
-              <button
-                type="submit"
-                className="w-full mt-2 flex items-center justify-center py-3 px-4 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
-              >
-                <KeyRound size={18} className="mr-2" /> Update Password
-              </button>
-            </form>
-          )}
+                <button
+                  type="submit"
+                  className="w-full mt-2 flex items-center justify-center py-3 px-4 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
+                >
+                  <KeyRound size={18} className="mr-2" /> Update Password
+                </button>
+              </form>
+            )}
+          </div>
+          <div className="text-center pt-2 mb-0 text-sm font-bold">
+            Powered by ved (v1)
+          </div>
         </div>
 
         <div className="mt-6 text-center">

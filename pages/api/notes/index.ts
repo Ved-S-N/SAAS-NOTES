@@ -13,33 +13,43 @@ export default async function handler(
   const user = await getUserFromReq(req);
   if (!user) return res.status(401).json({ error: "Unauthorized" });
 
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: user.tenantId },
+  });
+  if (!tenant) return res.status(500).json({ error: "Tenant not found" });
+
   if (req.method === "GET") {
     const where: any = { tenantId: user.tenantId };
-    // if Member, only fetch their own notes
     if (user.role === "MEMBER") where.authorId = user.id;
 
     const notes = await prisma.note.findMany({
       where,
       orderBy: { createdAt: "desc" },
     });
-    return res.json(notes);
+
+    return res.json({ notes, tenantPlan: tenant.plan.toUpperCase() });
   }
 
   if (req.method === "POST") {
     const { title, content } = req.body || {};
     if (!title) return res.status(400).json({ error: "title required" });
 
+    // Always check tenant plan from DB
     const tenant = await prisma.tenant.findUnique({
       where: { id: user.tenantId },
     });
     if (!tenant) return res.status(500).json({ error: "Tenant not found" });
 
-    if (tenant.plan === "free") {
+    // NOTE LIMIT LOGIC (apply only to MEMBERS when plan is FREE)
+    if (tenant.plan.toLowerCase() === "free" && user.role === "MEMBER") {
       const count = await prisma.note.count({
-        where: { tenantId: user.tenantId },
+        where: { tenantId: user.tenantId, authorId: user.id },
       });
-      if (count > 3)
-        return res.status(403).json({ error: "Free plan limit reached" });
+      if (count >= 3) {
+        return res
+          .status(403)
+          .json({ error: "Free plan limit reached (3 notes per member)" });
+      }
     }
 
     const note = await prisma.note.create({
@@ -50,8 +60,7 @@ export default async function handler(
         authorId: user.id,
       },
     });
+
     return res.status(201).json(note);
   }
-
-  return res.status(405).end();
 }

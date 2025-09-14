@@ -57,8 +57,8 @@ export default function NotesPage() {
         }
         return;
       }
-      setNotes(data.notes || data);
-      setTenantPlan(data.plan || "FREE");
+      setNotes(data.notes || []);
+      setTenantPlan(data.tenantPlan || "FREE"); // use latest tenant plan
     } catch (err) {
       setError("Failed to fetch notes");
     }
@@ -77,7 +77,8 @@ export default function NotesPage() {
     setError("");
     setSuccess("");
 
-    if (tenantPlan === "FREE" && notes.length >= 3) {
+    // dynamic limit per member if FREE
+    if (tenantPlan === "FREE" && role !== "ADMIN" && notes.length >= 3) {
       setError("Free plan limit reached! Upgrade to Pro to add more notes.");
       return;
     }
@@ -102,31 +103,31 @@ export default function NotesPage() {
     fetchNotes();
   }
 
-  async function handleDelete(id: string) {
+  async function handleUpgrade() {
+    setError("");
+    setSuccess("");
     const token = getToken();
-    if (!token) return router.push("/");
+    if (!token || !tenantSlug) return setError("Cannot upgrade");
 
-    try {
-      const resp = await fetch(`/api/notes/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      let data: any = null;
-      const text = await resp.text();
-      if (text) {
-        try {
-          data = JSON.parse(text);
-        } catch {}
-      }
-      if (!resp.ok) return setError(data?.error || "Delete failed");
+    const resp = await fetch(`/api/tenants/${tenantSlug}/upgrade`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await resp.json();
+    if (!resp.ok) return setError(data?.error || "Upgrade failed");
 
-      setSuccess(data?.message || "Note deleted successfully!");
-      fetchNotes();
-    } catch (err) {
-      setError("An unexpected error occurred");
-    }
+    setSuccess("Upgraded to Pro!");
+    fetchNotes(); // <-- refresh tenantPlan and notes
   }
 
+  function handleLogout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("tenantSlug");
+    localStorage.removeItem("role");
+    router.push("/");
+  }
+
+  // Editing & Delete handlers remain unchanged
   function startEditing(note: Note) {
     setEditingId(note.id);
     setEditTitle(note.title);
@@ -156,52 +157,29 @@ export default function NotesPage() {
     fetchNotes();
   }
 
-  async function handleUpgrade() {
-    setError("");
-    setSuccess("");
+  async function handleDelete(id: string) {
     const token = getToken();
-    if (!token || !tenantSlug) return setError("Cannot upgrade");
+    if (!token) return router.push("/");
 
-    const resp = await fetch(`/api/tenants/${tenantSlug}/upgrade`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await resp.json();
-    if (!resp.ok) return setError(data?.error || "Upgrade failed");
+    try {
+      const resp = await fetch(`/api/notes/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const text = await resp.text();
+      let data: any = null;
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {}
+      }
+      if (!resp.ok) return setError(data?.error || "Delete failed");
 
-    setTenantPlan("PRO");
-    setSuccess("Upgraded to Pro!");
-    fetchNotes();
-  }
-
-  async function handleInvite(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-    const token = getToken();
-    if (!token || !tenantSlug) return setError("Cannot invite");
-
-    const resp = await fetch(`/api/tenants/${tenantSlug}/invite`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
-    });
-    const data = await resp.json();
-    if (!resp.ok) return setError(data?.error || "Invite failed");
-
-    setSuccess(`Invited ${inviteEmail} as ${inviteRole}`);
-    setInviteEmail("");
-    setInviteRole("MEMBER");
-  }
-
-  function handleLogout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("tenantSlug");
-    localStorage.removeItem("role");
-    router.push("/");
+      setSuccess(data?.message || "Note deleted successfully!");
+      fetchNotes();
+    } catch (err) {
+      setError("An unexpected error occurred");
+    }
   }
 
   return (
@@ -282,47 +260,17 @@ export default function NotesPage() {
               </p>
               <p className="text-sm text-gray-500 mt-2">
                 Notes: {notes.length} /{" "}
-                {tenantPlan === "FREE" ? 3 : "Unlimited"}
+                {tenantPlan === "FREE" && role !== "ADMIN" ? 3 : "Unlimited"}
               </p>
-              {tenantPlan === "FREE" && (
+              {role === "ADMIN" && tenantPlan === "FREE" && (
                 <button
                   onClick={handleUpgrade}
                   className="mt-4 w-full flex items-center justify-center py-2 px-4 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
                 >
-                  <Crown size={16} className="mr-2" /> Upgrade to Pro
+                  <Crown size={16} className="mr-2" /> Upgrade Tenant to Pro
                 </button>
               )}
             </div>
-
-            {/* Admin Tools */}
-            {role === "ADMIN" && (
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h2 className="text-lg font-semibold mb-4">Admin Tools</h2>
-                <form onSubmit={handleInvite} className="space-y-4">
-                  <input
-                    type="email"
-                    placeholder="User email"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
-                  />
-                  <select
-                    value={inviteRole}
-                    onChange={(e) => setInviteRole(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition bg-white"
-                  >
-                    <option value="MEMBER">Member</option>
-                    <option value="ADMIN">Admin</option>
-                  </select>
-                  <button
-                    type="submit"
-                    className="w-full flex items-center justify-center py-3 px-4 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
-                  >
-                    <UserPlus size={16} className="mr-2" /> Invite User
-                  </button>
-                </form>
-              </div>
-            )}
           </div>
         </div>
 
