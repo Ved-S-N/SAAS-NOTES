@@ -3,7 +3,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import prisma from "../../../../lib/prisma";
 import { verifyToken } from "../../../../lib/auth";
 import { setCors } from "../../../../lib/middleware";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 export default async function handler(
   req: NextApiRequest,
