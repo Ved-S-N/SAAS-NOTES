@@ -127,6 +127,34 @@ export default function NotesPage() {
     router.push("/");
   }
 
+  async function handleInvite(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    const token = getToken();
+    if (!token) return router.push("/");
+
+    try {
+      const resp = await fetch(`/api/tenants/${tenantSlug}/invites`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        return setError(data?.error || "Failed to send invite");
+      }
+      setSuccess(`Invite sent to ${inviteEmail}!`);
+      setInviteEmail("");
+      setInviteRole("MEMBER");
+    } catch (err) {
+      setError("An unexpected error occurred");
+    }
+  }
+
   // Editing & Delete handlers remain unchanged
   function startEditing(note: Note) {
     setEditingId(note.id);
@@ -273,6 +301,37 @@ export default function NotesPage() {
             </div>
           </div>
         </div>
+        {/* ADD THIS NEW SECTION BELOW */}
+        {role === "ADMIN" && (
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <h2 className="text-lg font-semibold mb-4">Invite New User</h2>
+            <form onSubmit={handleInvite} className="space-y-4">
+              <input
+                type="email"
+                placeholder="user@example.com"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
+                required
+              />
+              <select
+                value={inviteRole}
+                onChange={(e) => setInviteRole(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 transition"
+              >
+                <option value="MEMBER">Member</option>
+                <option value="ADMIN">Admin</option>
+              </select>
+              <button
+                type="submit"
+                className="w-full flex items-center justify-center py-3 px-4 bg-gray-800 text-white rounded-lg font-semibold hover:bg-gray-900 transition-colors"
+              >
+                <UserPlus size={18} className="mr-2" /> Invite User
+              </button>
+            </form>
+          </div>
+        )}
+        {/* END OF NEW SECTION */}
 
         {/* Notes List */}
         <div>

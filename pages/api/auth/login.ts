@@ -27,7 +27,7 @@ export default async function handler(
 
   const token = signToken({
     userId: user.id,
-    role: user.role,
+    role: user.role as "MEMBER" | "ADMIN",
     tenantId: user.tenantId,
     tenantSlug: user.tenant.slug,
   });
